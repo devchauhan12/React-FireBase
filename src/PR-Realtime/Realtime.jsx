@@ -1,108 +1,198 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import './firebase'
 import { endAt, get, onValue, orderByChild, push, query, ref, remove, set, startAt, update } from 'firebase/database'
 import { getDatabase } from "firebase/database"
+import { useNavigate } from 'react-router-dom'
 const Realtime = () => {
-    const db = getDatabase()
-    // const dbf = ref(db);
+    const db = getDatabase();
+    const initial = {
+        name: '',
+        email: '',
+        status: '',
+    }
+    const [input, setInput] = useState(initial)
+    const [errors, setErrors] = useState({})
+    const [Users, setUsers] = useState()
+    const [state, setState] = useState(true)
+    const [updateID, setId] = useState(true)
+    const [sortOrder, setSortOrder] = useState('asc')
+    const categories = ['All', 'Active', 'Away', 'Not Active'];
+    const [list, setList] = useState(Users)
+
+    const handleSearch = (e) => {
+        let name = e.target.value
+        console.log('first')
+        let search = Users.filter(item =>
+            item.name.toLowerCase().includes(name.toLowerCase())
+        )
+        setList(search)
+    }
+
+    const handleFilter = (e) => {
+        let name = e.target.value
+        let search = Users.filter((item) => {
+            return name === 'All' ? true : item.status === name
+        })
+        setList(search)
+    }
 
     useEffect(() => {
         const userRef = ref(db, "Users")
-        get(userRef).then((snapshot) => {
-            if (snapshot.exists()) {
-                console.log(snapshot.val());
-            } else {
-                console.log("No data found");
-            }
-        }).catch((error) => {
-            console.error("Error getting data:", error);
-        });
+        onValue(userRef, (snapshot) => {
+            var list = []
+            snapshot.forEach((snapchild) => {
+                var id = snapchild.key
+                var data = snapchild.val()
+                var details = { id, ...data }
+                list.push(details)
+            })
+            setUsers(list)
+            setList(list)
+        })
     }, [])
 
- 
 
-    const checkValidation = (input) => {
-        const errors = {}
-
-        if (input.name.trim() === "") {
-            errors.name = "Invalid Name*"
+    function validate() {
+        let error = {}
+        if (input.name.length < 1) {
+            error.name = 'Enter Your Name'
         }
-        if (input.position.trim() === "") {
-            errors.position = "Invalid Input*"
+        if (input.email.length < 1) {
+            error.email = 'Enter Your Email'
         }
-        if (input.department.trim() === "") {
-            errors.department = "Invalid Data*"
+        if (input.status === '') {
+            error.status = 'Select the Status'
         }
-
-        return errors
+        return error;
     }
 
-    const handleChange = (e) => {
-        setInput({ ...input, [e.target.name]: e.target.value })
-    }
-
-    const handleSubmit = (e) => {
+    const handleAdd = async (e) => {
         e.preventDefault()
-        const validate = checkValidation(input)
-        setErrors(validate)
-        const check = Object.keys(validate)
-        if (check.length < 1) {
-            // setEmps([...emps, input])
-            if (editMode && id) {
-                const userRef = ref(db, `Employees/${id}`)
-                update(userRef, input).then()
-                setEditMode(false)
-                navigate(-1)
-                setInput(init)
-            } else {
-                const userRef = ref(db, "Employees")
-                const newRef = push(userRef)
-                set(newRef, input).then(() => {
-                    setEmployees(...employees, input)
-                    navigate(-1)
-                    setInput(init)
-                })
-            }
+        const checkErrors = validate()
+
+        if (Object.keys(checkErrors).length > 0) {
+            setErrors(checkErrors)
+        } else {
+            const userRef = ref(db, 'Users');
+            const newRef = push(userRef);
+            set(newRef, input)
+            setErrors({})
+            setInput(initial)
         }
     }
-    // console.log(emps);
-
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setInput({ ...input, [name]: value });
+    };
+    const handleDelete = (id) => {
+        const userRef = ref(db, `Users/${id}`);
+        remove(userRef)
+    };
+    const editData = (id) => {
+        if (state) {
+            setState(false)
+            const userRef = ref(db, `Users/${id}`);
+            get(userRef).then((snapshot) => {
+                setId(id)
+                setInput(snapshot.val());
+            })
+        } else {
+            const userRef = ref(db, `Users/${updateID}`);
+            update(userRef, input)
+            setState(true)
+            setInput(initial)
+        }
+    };
+    const handleSort = () => {
+        const orderType = sortOrder === 'asc' ? 'desc' : 'asc';
+        let sort1 = Users.sort((a, b) => {
+            if (orderType === 'asc') {
+                return a.name.localeCompare(b.name);
+            } else {
+                return b.name.localeCompare(a.name);
+            }
+        });
+        setSortOrder(orderType)
+        setList(sort1)
+    }
 
 
     return (
-        <section className='mt-5 gr-text'>
-            <div className="container">
-                <div className="col-4 m-auto">
-                    <form action="" className='bg-light p-3 bor-rad lightslategrey shadow-lg' onSubmit={handleSubmit}>
-                        <h4 className='text-center mb-3'>{editMode ? "Update Employee" : "New Employee"}</h4>
-                        <div className="form-group mb-3">
-                            <input type="text" placeholder="" name='name' value={input ? input.name : ''} onChange={handleChange}></input>
-                            <label>Name</label>
-                            <div className='text-danger text-end'>{errors.name}</div>
+        <>
+            <div className="container mt-5">
+                <div className="form-box m-auto">
+                    <form className="form" onSubmit={(e) => e.preventDefault()}>
+                        <span className="title">Add User</span>
+                        <div className="form-container">
+                            <input type="text" name='name' placeholder="Name" value={input.name} onChange={handleChange} />
+                            {errors.name ? <p>{errors.name}</p> : null}
+                            <input type="email" name='email' placeholder="Email" value={input.email} onChange={handleChange} />
+                            {errors.email ? <p>{errors.email}</p> : null}
+                            <select name="status" className='w-100 p-2 text-secondary' value={input.status} onChange={handleChange} style={{ border: 'none', outline: 'none' }} id="">
+                                <option value="">Select Status</option>
+                                <option value="Active">Active</option>
+                                <option value="Away">Away</option>
+                                <option value="Not Active">Not Active</option>
+                            </select>
+                            {errors.status ? <p>{errors.status}</p> : null}
                         </div>
-                        <div className="form-group mt-3 mb-3">
-                            <input type="text" placeholder="" name='position' value={input ? input.position : ''} onChange={handleChange}></input>
-                            <label>Positions</label>
-                            <div className='text-danger text-end'>{errors.position}</div>
-                        </div>
-                        <select className='bor-rad w-100 pyy-2' name='department' onChange={handleChange} value={input ? input.department : ''}>
-                            <option value="" className='pyy-2 bor-rad'>--Department--</option>
-                            <option value="Human Resources" className='pyy-2 bor-rad'>Human Resources</option>
-                            <option value="Finance and Accounting" className='pyy-2 bor-rad'>Finance and Accounting</option>
-                            <option value="Sales and Marketing" className='pyy-2 bor-rad'>Sales and Marketing</option>
-                            <option value="Information Technology (IT)" className='pyy-2 bor-rad'>Information Technology (IT)</option>
-                            <option value="Customer Support" className='pyy-2 bor-rad'>Customer Support</option>
-                            <option value="Production" className='pyy-2 bor-rad'>Production</option>
-                            <option value="Quality Control" className='pyy-2 bor-rad'>Quality Control</option>
-                            <option value="Project Management" className='pyy-2 bor-rad'>Project Management</option>
-                            <option value="Business Development" className='pyy-2 bor-rad'>Business Development</option>
-                        </select>
-                        <div className='text-danger text-end'>{errors.department}</div>
-                        <button type='submit' className='button w-100 py-2 mt-3'>{editMode ? "Update" : "Add"}</button>
+                        <button onClick={handleAdd} style={{ display: !state ? 'none' : 'block' }}>Add User</button>
+                        <button onClick={editData} style={{ display: state ? 'none' : 'block' }}>Update</button>
                     </form>
+                </div >
+                <div className="Header bg-dark d-flex flex-column m-5 rounded-3">
+                    <div className='d-flex justify-content-around align-items-center p-3'>
+                        <div>
+                            <label className='text-white'>
+                                Filter by Category:
+                                <select key={'xyz'} className='ms-3 rounded bg-secondary text-white' onChange={handleFilter}>
+                                    {categories.map(status => (
+                                        <option key={status} value={status}>
+                                            {status}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                        </div>
+                        <div className="input me-2">
+                            <input type="text" autoComplete="off" key={'input'} className='text-white' placeholder='Name' onChange={handleSearch} />
+                        </div>
+                        <div className='d-flex align-items-center rounded-4 me-2 text-white p-2'>
+                            <button className='btn px-4 py-6 fs-6 border-primary border-4 text-white' onClick={handleSort}>
+                                Sort {sortOrder === 'asc' ? <i className="ms-2 fa-regular fa-circle-up"></i> : <i className="ms-2 fa-regular fa-circle-down"></i>}
+                            </button>
+                        </div>
+                    </div>
+                    <table className="table table-hover table-dark">
+                        <thead>
+                            <tr>
+                                <th scope="col">#</th>
+                                <th scope="col">Name</th>
+                                <th scope="col">Email</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {list && list.map((item, index) => {
+                                return (
+                                    <tr key={index}>
+                                        <td>{index + 1}</td>
+                                        <td>{item.name}</td>
+                                        <td>{item.email}</td>
+                                        <td style={{ color: item.status === 'Active' ? 'lightgreen' : item.status === 'Away' ? '#FFB534' : 'red' }} >{item.status}</td>
+                                        <td>
+                                            <button className='btn btn-info me-2' onClick={() => editData(item.id)} disabled={!state}>Edit</button>
+                                            <button className='btn btn-danger' onClick={() => handleDelete(item.id)} disabled={!state}>Delete</button>
+                                        </td>
+                                    </tr>
+                                )
+                            })}
+                        </tbody>
+                    </table>
                 </div>
-            </div>
-        </section>
+            </div >
+        </>
     )
 }
 

@@ -1,0 +1,98 @@
+.form-box {
+    max-width: 300px;
+    background: #ddedff;
+    overflow: hidden;
+    border-radius: 16px;
+    color: #010101;
+}
+
+.form {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 32px 24px 24px;
+    gap: 16px;
+    text-align: center;
+}
+
+/*Form text*/
+.title {
+    font-weight: bold;
+    font-size: 1.6rem;
+}
+
+/*Inputs box*/
+.form-container {
+    overflow: hidden;
+    border-radius: 8px;
+    background-color: #fdfcfc;
+    margin: 1rem 0 .5rem;
+    width: 100%;
+}
+
+input {
+    background: none;
+    border: 0;
+    outline: 0;
+    height: 40px;
+    width: 100%;
+    border-bottom: 1px solid #eee;
+    font-size: .9rem;
+    padding: 8px 15px;
+}
+
+/*Button*/
+.form button {
+    background-color: #0066ff;
+    color: #fff;
+    border: 0;
+    border-radius: 24px;
+    padding: 10px 16px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color .3s ease;
+}
+
+.form button:hover {
+    background-color: #005ce6;
+}
+
+
+.Header .input {
+    font-family: 'Segoe UI', sans-serif;
+    max-width: 190px;
+    position: relative;
+}
+
+.Header .input input {
+    font-size: 100%;
+    padding: 0.8em;
+    outline: none;
+    border: 2px solid rgb(141, 109, 255);
+    background-color: transparent;
+    border-radius: 20px;
+    width: 100%;
+}
+
+.Header .input label {
+    font-size: 100%;
+    position: absolute;
+    left: 0;
+    padding: 0.9em;
+    margin-left: 0.5em;
+    pointer-events: none;
+    transition: all 0.3s ease;
+    color: rgb(255, 255, 255);
+}
+
+.Header .input input:focus~label {
+    transform: translateY(-70%) scale(1.2);
+    margin: 0em;
+    margin-left: .5em;
+    padding: 0.4em;
+}
+
+.Header .inputGroup :is(input:focus, input:valid) {
+    border-color: rgb(37, 37, 211);
+}
